@@ -22,20 +22,20 @@ def generate_launch_description():
     map_dir = LaunchConfiguration(
         "map",
         default=os.path.join(
-            get_package_share_directory("mayo_navigation"), "maps", "mayo_navigation.yaml"
+            get_package_share_directory("Nav2Mayo"), "maps", "Mayo_navigation.yaml"
         ),
     )
 
     param_dir = LaunchConfiguration(
         "params_file",
         default=os.path.join(
-            get_package_share_directory("mayo_navigation"), "params", "Mayo_navigation_params.yaml"
+            get_package_share_directory("Nav2Mayo"), "params", "Mayo_navigation_params.yaml"
         ),
     )
 
     nav2_bringup_launch_dir = os.path.join(get_package_share_directory("nav2_bringup"), "launch")
 
-    rviz_config_dir = os.path.join(get_package_share_directory("mayo_navigation"), "rviz2", "Mayo_navigation.rviz")
+    rviz_config_dir = os.path.join(get_package_share_directory("Nav2Mayo"), "rviz2", "Mayo_navigation.rviz")
 
     return LaunchDescription(
         [
