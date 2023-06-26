@@ -26,11 +26,10 @@ def generate_launch_description():
         ),
     )
 
-    #select the configuration file with the desired combination of controller (local planner) and planner (global planner)
     param_dir = LaunchConfiguration(
         "params_file",
         default=os.path.join(
-            get_package_share_directory("mayo_navigation"), "params", "Mayo_navigation_params_teb_smac.yaml"
+            get_package_share_directory("mayo_navigation"), "params", "Mayo_navigation_params.yaml"
         ),
     )
 
