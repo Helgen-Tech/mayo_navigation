@@ -38,7 +38,7 @@ amcl:
     z_rand: 0.5
     z_short: 0.05
     set_initial_pose: True
-    initial_pose: {x: -12.83051, y: -1.6673, z: 0.0, yaw: 0.0}
+    initial_pose: {x: -9.2451, y: -21.09521, z: 0.0, yaw: 1.5708}	#Initial Position used for testing planners in mayo_warehouse_nav_test.usd
 
 amcl_map_client:
   ros__parameters:
@@ -97,43 +97,31 @@ controller_server:
     use_sim_time: True
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
     min_theta_velocity_threshold: 0.001
-    failure_tolerance: 0.3
-    odom_topic: "odom"
-    progress_checker_plugin: "progress_checker"
-    goal_checker_plugin: "goal_checker"
     controller_plugins: ["FollowPath"]
-    progress_checker:
-      plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.5
-      movement_time_allowance: 10.0
-    goal_checker:
-      plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
-      stateful: True
 
-    # DWB controller parameters
+    progress_checker:
+    # DWB parameters
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: True
-      min_vel_x: -1.5
-      min_vel_y: -1.5
-      max_vel_x: 1.5
-      max_vel_y: 1.5
+      min_vel_x: -1.3
+      min_vel_y: -1.3
+      max_vel_x: 1.3
+      max_vel_y: 1.3
       max_vel_theta: 1.0
-      min_speed_xy: -2.1
-      max_speed_xy: 2.1
+      min_speed_xy: -1.3
+      max_speed_xy: 1.3
       min_speed_theta: -1.0
-      acc_lim_x: 2.5
-      acc_lim_y: 2.5
+      acc_lim_x: 0.5
+      acc_lim_y: 0.5
       acc_lim_theta: 3.2
-      decel_lim_x: -2.5
-      decel_lim_y: -2.5
+      decel_lim_x: -0.5
+      decel_lim_y: -0.5
       decel_lim_theta: -3.2
       vx_samples: 20
-      vy_samples: 20
+      vy_samples: 5
       vtheta_samples: 20
       sim_time: 1.7
       linear_granularity: 0.05
@@ -143,19 +131,21 @@ controller_server:
       trans_stopped_velocity: 0.25
       short_circuit_trajectory_evaluation: True
       stateful: True
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "Twirling"]
-      BaseObstacle.scale: 10.02
-      PathAlign.scale: 32.0
-      GoalAlign.scale: 24.0
+      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "Twirling", "Oscillation"]
+      BaseObstacle.scale: 30.0
+      Oscillation: 3.0
+      PathAlign.scale: 1.0
       PathAlign.forward_point_distance: 0.1
-      GoalAlign.forward_point_distance: 0.1
-      PathDist.scale: 24.0
-      GoalDist.scale: 24.0
-      RotateToGoal.scale: 64.0
-      RotateToGoal.slowing_factor: 5.0
+      GoalAlign.scale: 18.0
+      GoalAlign.forward_point_distance: 1.0
+      PathDist.scale: 0.1
+      GoalDist.scale: 6.0
+      RotateToGoal.xy_goal_tolerance: 0.001
+      RotateToGoal.scale: 15.0
+      RotateToGoal.slowing_factor: 0.6
       RotateToGoal.lookahead_time: -1.0
       Twirling.scale: 10.0
-      
+
 controller_server_rclcpp_node:
   ros__parameters:
     use_sim_time: True
@@ -163,23 +153,27 @@ controller_server_rclcpp_node:
 local_costmap:
   local_costmap:
     ros__parameters:
-      update_frequency: 20.0
-      publish_frequency: 10.0
+      update_frequency: 5.0
+      publish_frequency: 2.0
       global_frame: odom
       robot_base_frame: base_link
       use_sim_time: True
       rolling_window: true
-      width: 7
-      height: 7
       resolution: 0.1
-      #robot_radius: 1.8
+      
+      #COSTMAP SIZE SET TO CALCULATED STOPPING DISTANCE OF AMR - 10 METERS EACH DIRECTION
+      width: 20
+      height: 20
+      
+      #RECTANGLE FOOTPRINT 4 VERTICES COUNTER CLOCKWISE
       footprint: "[ [-0.27486,, -0.82706], [-0.27486, 0.82706], [2.97371, 0.82706], [2.97371, -0.82706] ]"
+      
+      #PLUGINS
       plugin_names: ["obstacle_layer", "voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 0.5
-        inflation_radius: 0.8
-
+        cost_scaling_factor: 0.4				#SCALING FACTOR
+        inflation_radius: 1.0					#INFLATION RADIUS
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
@@ -190,6 +184,10 @@ local_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
+          obstacle_max_range: 10.0		#MAX DIST OBSTACLE WILL BE MARKED
+          obstacle_min_range: 0.4		#MIN DIST OBSTACLE WILL BE MARKED
+          raytrace_max_range: 10.0		#MAX DIST OF SCAN RAY
+          raytrace_min_range: 0.4		#MIN DIST OF SCAN RAY
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -224,7 +222,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: True
-      #robot_radius: 1.8
+      #robot_radius: 0.36
       footprint: "[ [2.97371, 0.82706], [2.97371, -0.82706], [-0.27486,, -0.82706], [-0.27486, 0.82706] ]"
       resolution: 0.05
       plugins: ["static_layer", "obstacle_layer", "voxel_layer", "inflation_layer"]
@@ -259,11 +257,7 @@ global_costmap:
         map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        enabled: true
-        inflation_radius: 0.8
-        cost_scaling_factor: 1.0
-        inflate_unknown: false
-        inflate_around_unknown: true
+        inflation_radius: 1.0
       always_send_full_costmap: True
   global_costmap_client:
     ros__parameters:
@@ -286,14 +280,15 @@ map_saver:
 
 planner_server:
   ros__parameters:
-    planner_plugins: ["GridBased"]
+    expected_planner_frequency: 20.0
     use_sim_time: True
-
+    planner_plugins: ["GridBased"]
     GridBased:
-      plugin: 'nav2_navfn_planner/NavfnPlanner'
-      use_astar: True
-      allow_unknown: True
-      tolerance: 0.25
+      plugin: "nav2_theta_star_planner/ThetaStarPlanner"
+      how_many_corners: 4
+      w_euc_cost: 1.0
+      w_traversal_cost: 2.0
+      w_heuristic_cost: 1.0
 
 planner_server_rclcpp_node:
   ros__parameters:
@@ -304,7 +299,9 @@ recoveries_server:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 10.0
-    recovery_plugins: ["backup", "wait"]
+    recovery_plugins: ["spin", "backup", "wait"]
+    spin:
+      plugin: "nav2_recoveries/Spin"
     backup:
       plugin: "nav2_recoveries/BackUp"
     wait:
