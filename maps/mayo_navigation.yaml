@@ -1,6 +1,6 @@
 image: mayo_warehouse_nav_test.png
 resolution: 0.01
-origin: [-26.665000076293946, -23.544999237060548, 0.0000]
+origin: [-26.574999923706056, -23.51499855041504, 0.0000]
 negate: 0
 occupied_thresh: 0.65
 free_thresh: 0.196
