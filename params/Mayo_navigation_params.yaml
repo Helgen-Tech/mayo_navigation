@@ -38,7 +38,7 @@ amcl:
     z_rand: 0.5
     z_short: 0.05
     set_initial_pose: True
-    initial_pose: {x: -9.2451, y: -21.09521, z: 0.0, yaw: 1.5708}	#Initial Position used for testing planners in mayo_warehouse_nav_test.usd
+    initial_pose: {x: -9.2451, y: -21.09521, z: 0.0, yaw: 1.5708}
 
 amcl_map_client:
   ros__parameters:
@@ -79,6 +79,7 @@ bt_navigator:
     - nav2_transform_available_condition_bt_node
     - nav2_time_expired_condition_bt_node
     - nav2_distance_traveled_condition_bt_node
+    - nav2_is_obstacle_condition_bt_node
     - nav2_single_trigger_bt_node
     - nav2_is_battery_low_condition_bt_node
     - nav2_navigate_through_poses_action_bt_node
@@ -87,6 +88,7 @@ bt_navigator:
     - nav2_planner_selector_bt_node
     - nav2_controller_selector_bt_node
     - nav2_goal_checker_selector_bt_node
+    - nav2_is_battery_charging_condition_bt_node
 
 bt_navigator_rclcpp_node:
   ros__parameters:
@@ -95,24 +97,23 @@ bt_navigator_rclcpp_node:
 controller_server:
   ros__parameters:
     use_sim_time: True
-    controller_frequency: 20.0
+    controller_frequency: 30.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.5
     min_theta_velocity_threshold: 0.001
-    controller_plugins: ["FollowPath"]
+    controller_plugins: ["FollowPath", "FollowPath2"]
 
-    progress_checker:
     # DWB parameters
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: True
-      min_vel_x: -1.3
-      min_vel_y: -1.3
-      max_vel_x: 1.3
-      max_vel_y: 1.3
+      min_vel_x: -0.5
+      min_vel_y: -0.5
+      max_vel_x: 0.5
+      max_vel_y: 0.5
       max_vel_theta: 1.0
-      min_speed_xy: -1.3
-      max_speed_xy: 1.3
+      min_speed_xy: -0.5
+      max_speed_xy: 0.5
       min_speed_theta: -1.0
       acc_lim_x: 0.5
       acc_lim_y: 0.5
@@ -131,20 +132,123 @@ controller_server:
       trans_stopped_velocity: 0.25
       short_circuit_trajectory_evaluation: True
       stateful: True
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "Twirling", "Oscillation"]
-      BaseObstacle.scale: 30.0
-      Oscillation: 3.0
-      PathAlign.scale: 1.0
+      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "Twirling"]
+      BaseObstacle.scale: 0.02
+      PathAlign.scale: 32.0
       PathAlign.forward_point_distance: 0.1
-      GoalAlign.scale: 18.0
-      GoalAlign.forward_point_distance: 1.0
-      PathDist.scale: 0.1
-      GoalDist.scale: 6.0
-      RotateToGoal.xy_goal_tolerance: 0.001
-      RotateToGoal.scale: 15.0
-      RotateToGoal.slowing_factor: 0.6
+      GoalAlign.scale: 24.0
+      GoalAlign.forward_point_distance: 0.1
+      PathDist.scale: 32.0
+      GoalDist.scale: 24.0
+      RotateToGoal.scale: 32.0
+      RotateToGoal.slowing_factor: 5.0
       RotateToGoal.lookahead_time: -1.0
-      Twirling.scale: 10.0
+      
+    FollowPath2:
+      plugin: teb_local_planner::TebLocalPlannerROS
+
+      teb_autosize: 1.0
+      dt_ref: 0.3
+      dt_hysteresis: 0.1
+      max_samples: 500
+      global_plan_overwrite_orientation: True
+      allow_init_with_backwards_motion: False
+      max_global_plan_lookahead_dist: 10.0
+      global_plan_viapoint_sep: 0.3
+      global_plan_prune_distance: 1.0
+      exact_arc_length: False
+      feasibility_check_no_poses: 2
+      publish_feedback: False
+          
+      # Robot
+              
+      max_vel_x: 1.3
+      max_vel_y: 1.3
+      max_vel_theta: 1.3 
+      acc_lim_x: 0.5
+      acc_lim_y: 0.5
+      acc_lim_theta: 0.5
+      min_turning_radius: 0.0
+
+      footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
+        type: "polygon"
+        vertices: "[ [-0.27486, -0.82706], [-0.27486, 0.82706], [2.97371, 0.82706], [2.97371, -0.82706] ]"
+
+      # GoalTolerance
+              
+      free_goal_vel: False
+      xy_goal_tolerance: 0.2
+      yaw_goal_tolerance: 0.2
+          
+      # Obstacles
+          
+      min_obstacle_dist: 2.0
+      inflation_dist: 5.0
+      include_costmap_obstacles: True
+      costmap_obstacles_behind_robot_dist: 1.0
+      obstacle_poses_affected: 15
+
+      dynamic_obstacle_inflation_dist: 0.3
+      include_dynamic_obstacles: True 
+
+      costmap_converter_plugin: "costmap_converter::CostmapToPolygonsDBSMCCH"
+      costmap_converter_spin_thread: True
+      costmap_converter_rate: 5
+
+      # Optimization
+          
+      no_inner_iterations: 5
+      no_outer_iterations: 4
+      optimization_activate: True
+      optimization_verbose: False
+      penalty_epsilon: 0.1
+      obstacle_cost_exponent: 4.0
+      weight_max_vel_x: 0.5
+      weight_max_vel_theta: 0.5
+      weight_acc_lim_x: 0.5
+      weight_acc_lim_theta: 10.5
+      weight_kinematics_nh: 1.0
+      weight_kinematics_forward_drive: 1.0
+      weight_kinematics_turning_radius: 1.0
+      weight_optimaltime: 1.0 # must be > 0
+      weight_shortest_path: 2.0
+      weight_obstacle: 40.0
+      weight_inflation: 0.1
+      weight_viapoint: 50.0
+      weight_adapt_factor: 2.0
+      
+      # Homotopy Class Planner
+
+      enable_homotopy_class_planning: True
+      enable_multithreading: True
+      max_number_classes: 4
+      selection_cost_hysteresis: 5.0
+      selection_prefer_initial_plan: 1.0
+      selection_obst_cost_scale: 1.0
+      selection_alternative_time_cost: True
+
+      roadmap_graph_no_samples: 15
+      roadmap_graph_area_width: 5.0
+      roadmap_graph_area_length_scale: 1.0
+      h_signature_prescaler: 0.5
+      h_signature_threshold: 0.1
+      obstacle_heading_threshold: 0.45
+      switching_blocking_period: 0.0
+      viapoints_all_candidates: True
+      delete_detours_backwards: True
+      max_ratio_detours_duration_best_duration: 3.0
+      visualize_hc_graph: False
+      visualize_with_time_as_z_axis_scale: 0.0
+
+      # Recovery
+      
+      shrink_horizon_backup: True
+      shrink_horizon_min_duration: 10.0
+      oscillation_recovery: True
+      oscillation_v_eps: 0.1
+      oscillation_omega_eps: 0.1
+      oscillation_recovery_min_duration: 10.0
+      oscillation_filter_duration: 10.0
 
 controller_server_rclcpp_node:
   ros__parameters:
@@ -159,21 +263,17 @@ local_costmap:
       robot_base_frame: base_link
       use_sim_time: True
       rolling_window: true
+      width: 7
+      height: 7
       resolution: 0.1
-      
-      #COSTMAP SIZE SET TO CALCULATED STOPPING DISTANCE OF AMR - 10 METERS EACH DIRECTION
-      width: 20
-      height: 20
-      
-      #RECTANGLE FOOTPRINT 4 VERTICES COUNTER CLOCKWISE
+      #robot_radius: 0.36
       footprint: "[ [-0.27486,, -0.82706], [-0.27486, 0.82706], [2.97371, 0.82706], [2.97371, -0.82706] ]"
-      
-      #PLUGINS
       plugin_names: ["obstacle_layer", "voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 0.4				#SCALING FACTOR
-        inflation_radius: 1.0					#INFLATION RADIUS
+        cost_scaling_factor: 0.4
+        inflation_radius: 0.5
+
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
@@ -184,10 +284,6 @@ local_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
-          obstacle_max_range: 10.0		#MAX DIST OBSTACLE WILL BE MARKED
-          obstacle_min_range: 0.4		#MIN DIST OBSTACLE WILL BE MARKED
-          raytrace_max_range: 10.0		#MAX DIST OF SCAN RAY
-          raytrace_min_range: 0.4		#MIN DIST OF SCAN RAY
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -257,7 +353,6 @@ global_costmap:
         map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 1.0
       always_send_full_costmap: True
   global_costmap_client:
     ros__parameters:
@@ -284,11 +379,10 @@ planner_server:
     use_sim_time: True
     planner_plugins: ["GridBased"]
     GridBased:
-      plugin: "nav2_theta_star_planner/ThetaStarPlanner"
-      how_many_corners: 4
-      w_euc_cost: 1.0
-      w_traversal_cost: 2.0
-      w_heuristic_cost: 1.0
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      tolerance: 0.5
+      use_astar: false
+      allow_unknown: true
 
 planner_server_rclcpp_node:
   ros__parameters:
